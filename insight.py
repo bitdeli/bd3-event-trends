@@ -21,9 +21,8 @@ def choose_events(model):
     latest = get_latest(model)
     events = get_events(model)
     if len(events) > MAX_EVENTS:
-        c = Counter((event, daily_count(event, latest, model))
-                    for event in events)
-        events = frozenset(x[0] for x in c.most_common(MAX_EVENTS))
+        c = [(daily_count(event, latest, model), event) for event in events]
+        events = [event for count, event in sorted(c)][-MAX_EVENTS:]
     return latest, events
 
 def trend(event, latest_day, model):
