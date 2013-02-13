@@ -1,7 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta
 
-from bitdeli.insight import insight
+from bitdeli.insight import insight, segment
 from bitdeli.widgets import Line
 
 NUM_DAYS = 30
@@ -30,6 +30,10 @@ def trend(event, latest_day, model):
         day = (latest_day - timedelta(days=i)).isoformat()
         yield day, daily_count(event, day.split('T')[0].replace('-', ''), model)
 
+@segment
+def segment(model, params):
+    return ['1', '1000105556']
+        
 @insight
 def view(model, params):
     latest, events = choose_events(model)
