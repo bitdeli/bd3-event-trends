@@ -33,7 +33,11 @@ def trend(event, latest_day, model):
 @segment
 def segment(model, params):
     return ['1', '1000105556']
-        
+
+@segment_label
+def label(segment, params):
+    return '%d people' % len(segment)
+
 @insight
 def view(model, params):
     latest, events = choose_events(model)
