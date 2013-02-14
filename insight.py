@@ -1,7 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta
 
-from bitdeli.insight import insight, segment
+from bitdeli.insight import insight, segment, segment_label
 from bitdeli.widgets import Line
 
 NUM_DAYS = 30
