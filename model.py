@@ -1,11 +1,15 @@
 from datetime import datetime
 from itertools import groupby
-from bitdeli.model import model
+from bitdeli.model import model, uid
 
 def day(hours):
     for hour, count in hours:
         yield datetime.utcfromtimestamp(hour * 3600).strftime('%Y%m%d'), count
 
+@uid
+def uid(value):
+    return value[value.find(':') + 1:]
+        
 @model
 def build(profiles):
     for profile in profiles:
