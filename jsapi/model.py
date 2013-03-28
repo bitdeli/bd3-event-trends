@@ -1,10 +1,9 @@
 from datetime import datetime
-from itertools import groupby
+from itertools import groupby, islice
 from bitdeli.model import model, uid
+from collections import Counter
 
-def day(hours):
-    for hour, count in hours:
-        yield datetime.utcfromtimestamp(hour * 3600).strftime('%Y%m%d'), count
+NUM_DAYS = 30
 
 @uid
 def uid(value):
@@ -12,9 +11,15 @@ def uid(value):
         
 @model
 def build(profiles):
+    def parse_day(event):
+        return event[0][:10].replace('-', '')
     for profile in profiles:
-        uid = profile.uid
-        for event, hours in profile['events'].iteritems():
-            for date, counts in groupby(day(hours), lambda x: x[0]):
-                yield '%s:%s' % (date, event),\
-                      '%d:%s' % (sum(count for date, count in counts), uid)
+        uidd = profile.uid
+        days = groupby(profile['events'], parse_day)
+        for day, events in islice(days, NUM_DAYS):
+            c = Counter(event['$event_name']
+                        for tstamp, group, ip, event in events)
+            for event, count in c.iteritems():
+                yield '%s:%s' % (day, event),\
+                      '%d:%s' % (count, uidd) 
+
