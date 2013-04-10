@@ -132,14 +132,17 @@ def daily_users(event, day, model, segment=None):
 
 @segment
 def segment(model, params):
+    has_segments = hasattr(model, 'segments')
+    omodel = model.model if has_segments else model
+    segment = model.segments[0] if has_segments else None
+    
     chosen = get_chosen(params['params'], model)
     start, end = get_segment_dates(params['value'])
-    segment = model.segments[0] if hasattr(model, 'segments') else None
     users = set()
     for event in chosen:
         for i in range((end - start).days + 1):
             day = (end - timedelta(days=i)).strftime("%Y%m%d")
-            users.update(daily_users(event, day, model, segment))
+            users.update(daily_users(event, day, omodel, segment))
     return users
 
 
