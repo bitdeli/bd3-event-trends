@@ -115,9 +115,11 @@ def view(model, params):
                      data=list(get_events(omodel)))
 
     if data:
+        segmentable = not has_segments or len(model.segments) < 2
         yield Line(id='trends',
                    size=(12, 6),
-                   data=data)
+                   data=data,
+                   segmentable=segmentable)
 
 
 def get_segment_dates(timestamps):
