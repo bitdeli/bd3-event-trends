@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 
 from bitdeli.insight import insight, segment, segment_label
@@ -8,6 +8,18 @@ NUM_DAYS = 30
 MAX_EVENTS = 3
 SEGMENT_RANGE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 SEGMENT_LABEL_FORMAT = "%b %d, %Y"
+
+TRENDS_CAPTION = """
+### How many times has an event been triggered in a day?
+
+Enter up to %d events below to see their trends over time.
+""" % MAX_EVENTS
+
+DIFF_CAPTION = """
+### How many times have {0} triggered an event in a day compared to {1}?
+
+Enter an event below to compare its trends in these segments over time.
+"""
 
 class TokenInput(Widget):
     pass
@@ -19,7 +31,8 @@ def unique(events):
             yield event
             seen.add(event)
 
-def get_chosen(params, max_events=MAX_EVENTS):
+def get_chosen(params, model):
+    max_events = 1 if hasattr(model, 'segments') else MAX_EVENTS
     return list(unique(params['events']['value']
                 if 'events' in params else []))[:max_events]
             
@@ -28,6 +41,20 @@ def get_latest(model):
 
 def get_events(model):
     return frozenset(key.split(':', 1)[1] for key in model)
+
+def get_caption(model):
+    caption = TRENDS_CAPTION
+    caption_label = 'Analyzing event trends'
+    if hasattr(model, 'segments'):
+        n = len(model.segments)
+        suffix = 'another segment'
+        segment_labels = model.labels
+        if n == 1:
+            suffix = 'all other users'
+            segment_labels.append(suffix)
+        caption_label = 'Comparing a segment to ' + suffix
+        caption = DIFF_CAPTION.format(*segment_labels)
+    return caption, caption_label
 
 def daily_count(event, day, model):
     return sum(int(value.split(':', 1)[0])
@@ -40,22 +67,39 @@ def trend(event, latest_day, model):
 
 @insight
 def view(model, params):
-    chosen = get_chosen(params)
-
+    def test_segment():
+        import random
+        random.seed(21)
+        labels = ['First Segment']#, 'Second']
+        segments = [frozenset(random.sample(model.unique_values(), 100))]
+                    #frozenset(random.sample(model.unique_values(), 200))]
+        return namedtuple('SegmentInfo', ('model', 'segments', 'labels'))\
+                         (model, segments, labels)
+        
+    #model = test_segment()
+    has_segments = hasattr(model, 'segments')
+    omodel = model.model if has_segments else model
+    
+    chosen = get_chosen(params, model)
+    data = []
+    if chosen:
+        latest_day = datetime.strptime(get_latest(omodel), '%Y%m%d')
+        data = [{'label': event, 'data': list(trend(event, latest_day, omodel))}
+                for event in chosen]
+    
+    caption, caption_label = get_caption(model)
     yield Text(size=(12, 'auto'),
-               label='Analyzing event trends',
-               data={'text': "## How many times has X been triggered in a day?\n"})
+               label=caption_label,
+               data={'text': caption})
             
     yield TokenInput(id='events',
                      size=(12, 1),
-                     label='Events to display',
+                     label='Event used for comparison' if has_segments
+                           else 'Events to display',
                      value=chosen,
-                     data=list(get_events(model)))
+                     data=list(get_events(omodel)))
     
-    if chosen:
-        latest_day = datetime.strptime(get_latest(model), '%Y%m%d')
-        data = [{'label': event, 'data': list(trend(event, latest_day, model))}
-                for event in chosen]
+    if data:
         yield Line(id='trends',
                    size=(12, 6),
                    data=data)
@@ -71,7 +115,7 @@ def daily_users(event, day, model):
 
 @segment
 def segment(model, params):
-    chosen = get_chosen(params['params'])
+    chosen = get_chosen(params['params'], model)
     start, end = get_segment_dates(params['value'])
     users = set()
     for event in chosen:
@@ -80,6 +124,7 @@ def segment(model, params):
             users.update(daily_users(event, day, model))                
     return users
 
+
 def get_label_events(events):
     initial = events[:-1]
     last = events[-1]
@@ -87,7 +132,7 @@ def get_label_events(events):
 
 @segment_label
 def label(segment, model, params):
-    chosen = get_chosen(params['params'])
+    chosen = get_chosen(params['params'], model)
     start, end = get_segment_dates(params['value'])
     
     label = 'Users who triggered %s ' % get_label_events(chosen)
@@ -98,3 +143,4 @@ def label(segment, model, params):
     else:
         label = label + 'on %s' % start.strftime(dateformat)
     return label
+
