@@ -79,13 +79,18 @@ def segment(model, params):
             day = (end - timedelta(days=i)).strftime("%Y%m%d")
             users.update(daily_users(event, day, model))                
     return users
- 
+
+def get_label_events(events):
+    initial = events[:-1]
+    last = events[-1]
+    return ", ".join(initial) + " or " + last if initial else last
+
 @segment_label
 def label(segment, model, params):
     chosen = get_chosen(params['params'])
     start, end = get_segment_dates(params['value'])
     
-    label = 'Users who did %s ' % ', '.join(chosen)
+    label = 'Users who triggered %s ' % get_label_events(chosen)
     dateformat = SEGMENT_LABEL_FORMAT
     if end - start:
         label = label + 'between %s and %s' % (start.strftime(dateformat),
