@@ -156,11 +156,15 @@ def label(segment, model, params):
     chosen = get_chosen(params['params'], model)
     start, end = get_segment_dates(params['value'])
 
-    label = 'Users who triggered %s ' % get_label_events(chosen)
+    label = ' who triggered %s ' % get_label_events(chosen)
     dateformat = SEGMENT_LABEL_FORMAT
     if end - start:
         label = label + 'between %s and %s' % (start.strftime(dateformat),
                                                 end.strftime(dateformat))
     else:
         label = label + 'on %s' % start.strftime(dateformat)
-    return label
+        
+    if hasattr(model, 'labels'):
+        return model.labels[0] + label
+    else:
+        return 'Users' + label
