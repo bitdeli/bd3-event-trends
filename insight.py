@@ -35,7 +35,7 @@ def get_chosen(params, model):
     max_events = 1 if hasattr(model, 'segments') else MAX_EVENTS
     return list(unique(params['events']['value']
                 if 'events' in params else []))[:max_events]
-            
+
 def get_latest(model):
     return max(key.split(':', 1)[0] for key in model)
 
@@ -81,12 +81,12 @@ def view(model, params):
                     #frozenset(random.sample(model.unique_values(), 200))]
         return namedtuple('SegmentInfo', ('model', 'segments', 'labels'))\
                          (model, segments, labels)
-        
+
     #model = test_segment()
     has_segments = hasattr(model, 'segments')
     omodel = model.model if has_segments else model
 
-    latest_day = datetime.strptime(get_latest(omodel), '%Y%m%d')    
+    latest_day = datetime.strptime(get_latest(omodel), '%Y%m%d')
     chosen = get_chosen(params, model)
     data = []
     if has_segments and chosen:
@@ -101,19 +101,19 @@ def view(model, params):
     else:
         data = [{'label': event, 'data': list(trend(event, latest_day, omodel))}
                 for event in chosen]
-    
+
     caption, caption_label = get_caption(model)
     yield Text(size=(12, 'auto'),
                label=caption_label,
                data={'text': caption})
-            
+
     yield TokenInput(id='events',
                      size=(12, 1),
                      label='Event used for comparison' if has_segments
                            else 'Events to display',
                      value=chosen,
                      data=list(get_events(omodel)))
-    
+
     if data:
         yield Line(id='trends',
                    size=(12, 6),
@@ -124,19 +124,22 @@ def get_segment_dates(timestamps):
     return (datetime.strptime(tstamp, SEGMENT_RANGE_FORMAT)
             for tstamp in timestamps)
 
-def daily_users(event, day, model):
-    return (value.split(':', 1)[1]
-            for value in model.get('%s:%s' % (day, event), []))
+def daily_users(event, day, model, segment=None):
+    for value in model.get('%s:%s' % (day, event), []):
+        uid = value.split(':', 1)[1]
+        if segment is None or uid in segment:
+            yield uid
 
 @segment
 def segment(model, params):
     chosen = get_chosen(params['params'], model)
     start, end = get_segment_dates(params['value'])
+    segment = model.segment[0] if hasattr(model, 'segments') else None
     users = set()
     for event in chosen:
         for i in range((end - start).days + 1):
             day = (end - timedelta(days=i)).strftime("%Y%m%d")
-            users.update(daily_users(event, day, model))                
+            users.update(daily_users(event, day, model, segment))
     return users
 
 
@@ -149,7 +152,7 @@ def get_label_events(events):
 def label(segment, model, params):
     chosen = get_chosen(params['params'], model)
     start, end = get_segment_dates(params['value'])
-    
+
     label = 'Users who triggered %s ' % get_label_events(chosen)
     dateformat = SEGMENT_LABEL_FORMAT
     if end - start:
