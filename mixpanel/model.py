@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 from itertools import groupby
 from bitdeli.model import model, segment_model, uid
