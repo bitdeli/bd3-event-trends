@@ -50,20 +50,26 @@ def get_caption(model):
         suffix = 'another segment'
         segment_labels = model.labels
         if n == 1:
-            suffix = 'all other users'
+            suffix = 'all users'
             segment_labels.append(suffix)
         caption_label = 'Comparing a segment to ' + suffix
         caption = DIFF_CAPTION.format(*segment_labels)
     return caption, caption_label
 
-def daily_count(event, day, model):
-    return sum(int(value.split(':', 1)[0])
-               for value in model.get('%s:%s' % (day, event), []))
+def count_by_segment(values, segment=None):
+    for value in values:
+        if segment is None or value.split(':', 1)[1] in segment:
+            yield int(value.split(':', 1)[0])
 
-def trend(event, latest_day, model):
+def daily_count(event, day, model, segment=None):
+    return sum(count_by_segment(model.get('%s:%s' % (day, event), []),
+                                segment))
+
+def trend(event, latest_day, model, segment=None):
     for i in range(NUM_DAYS):
         day = (latest_day - timedelta(days=i)).isoformat()
-        yield day, daily_count(event, day.split('T')[0].replace('-', ''), model)
+        yield day, daily_count(event, day.split('T')[0].replace('-', ''),
+                               model, segment)
 
 @insight
 def view(model, params):
@@ -79,11 +85,20 @@ def view(model, params):
     #model = test_segment()
     has_segments = hasattr(model, 'segments')
     omodel = model.model if has_segments else model
-    
+
+    latest_day = datetime.strptime(get_latest(omodel), '%Y%m%d')    
     chosen = get_chosen(params, model)
     data = []
-    if chosen:
-        latest_day = datetime.strptime(get_latest(omodel), '%Y%m%d')
+    if has_segments and chosen:
+        n = len(model.segments)
+        event = chosen[0]
+        data = [{'label': model.labels[i],
+                 'data': list(trend(event, latest_day, omodel, model.segments[i]))}
+                for i in range(n)]
+        if n == 1:
+            data.append({'label': 'All users',
+                         'data': list(trend(event, latest_day, omodel))})
+    else:
         data = [{'label': event, 'data': list(trend(event, latest_day, omodel))}
                 for event in chosen]
     
@@ -143,4 +158,3 @@ def label(segment, model, params):
     else:
         label = label + 'on %s' % start.strftime(dateformat)
     return label
-
