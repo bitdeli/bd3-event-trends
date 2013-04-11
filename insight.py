@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 from bitdeli.insight import insight, segment, segment_label
 from bitdeli.widgets import Line, Text, Widget
 
-NUM_DAYS = 30
+NUM_DAYS = 180
 MAX_EVENTS = 3
 SEGMENT_RANGE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 SEGMENT_LABEL_FORMAT = "%b %d, %Y"
+SEGMENT_COLORS = ["#0064cd", "#f89406"]
 
 TRENDS_CAPTION = """
 ### How many times has an event been triggered in a day?
@@ -93,11 +94,13 @@ def view(model, params):
         n = len(model.segments)
         event = chosen[0]
         data = [{'label': model.labels[i],
+                 'color': SEGMENT_COLORS[i % len(SEGMENT_COLORS)],
                  'data': list(trend(event, latest_day, omodel, model.segments[i]))}
                 for i in range(n)]
         if n == 1:
-            data.append({'label': 'All users',
-                         'data': list(trend(event, latest_day, omodel))})
+            data.insert(0, {'label': 'All users',
+                            'color': '#b1b2b3',
+                            'data': list(trend(event, latest_day, omodel))})
     else:
         data = [{'label': event, 'data': list(trend(event, latest_day, omodel))}
                 for event in chosen]
