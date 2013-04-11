@@ -1,6 +1,7 @@
+from collections import namedtuple
 from datetime import datetime
 from itertools import groupby
-from bitdeli.model import model, uid
+from bitdeli.model import model, segment_model, uid
 
 def day(hours):
     for hour, count in hours:
@@ -18,3 +19,8 @@ def build(profiles):
             for date, counts in groupby(day(hours), lambda x: x[0]):
                 yield '%s:%s' % (date, event),\
                       '%d:%s' % (sum(count for date, count in counts), uid)
+
+@segment_model
+def segment(model, segments, labels):
+    return namedtuple('SegmentInfo', ('model', 'segments', 'labels'))\
+                     (model, segments, labels)
