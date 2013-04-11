@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from bitdeli.insight import insight, segment, segment_label
 from bitdeli.widgets import Line, Text, Widget
 
-NUM_DAYS = 180
+NUM_DAYS = 30
 MAX_EVENTS = 3
 SEGMENT_RANGE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 SEGMENT_LABEL_FORMAT = "%b %d, %Y"
