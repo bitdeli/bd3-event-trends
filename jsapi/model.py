@@ -1,31 +1,21 @@
+from urlparse import urlparse
 from datetime import datetime
 from itertools import groupby, islice, chain
 from bitdeli.model import model, uid
 from collections import Counter
 
 NUM_DAYS = 30
-MAX_URL = 64
-
-# Customize to hide domain from page views
-# Example: "bitdeli.com"
-URL_DOMAIN = ""
+MAX_LEN = 64
 
 def event_names(events):
     for tstamp, group, ip, event in events:
-        name = event.get('$event_name', None)
+        name = event.get('$event_name')
         if name == '$dom_event':
-            name = event.get('$event_label', None)
+            name = event.get('$event_label')
         elif name == '$pageview':
-            if not event.get('$page', ''):
-                return
-            url = event['$page']
-            splitter = URL_DOMAIN if URL_DOMAIN else 'http://'
-            if splitter in url:
-                url = url.split(splitter, 1)[1]
-            url = ('...' + url[-MAX_URL:]) if len(url) > MAX_URL else url
-            name = 'Page: %s' % url
+            name = 'viewed %s' % urlparse(event.get('$page', '')).path
         if name:
-            yield name
+            yield name[:MAX_LEN].encode('utf-8')
 
 @model
 def build(profiles):
